@@ -141,6 +141,7 @@ double CEmc(PHG4Reco *g4Reco, double radius, const int crossings,
     height += scint_width;
   }
 
+  return radius;
 }
 
 void CEMC_Cells(int verbosity = 0) {
