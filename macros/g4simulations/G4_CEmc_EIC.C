@@ -131,7 +131,7 @@ double CEmc(PHG4Reco *g4Reco, double radius, const int crossings,
     cemc->set_double_param("place_z", -0);
     cemc->SuperDetector("CEMC");
 
-    cemc->SetActive();
+    cemc->SetActive(false);
     cemc->OverlapCheck(overlapcheck);
     g4Reco->registerSubsystem(cemc);
 
