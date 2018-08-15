@@ -170,7 +170,7 @@ blackhole->set_double_param("radius",radius + 10); // add 10 cm
   blackhole->set_double_param("length",g4Reco->GetWorldSizeZ() - no_overlapp); // make it cover the world in length
   blackhole->BlackHole();
   blackhole->set_double_param("thickness",0.1); // it needs some thickness
-  blackhole->SetActive(); // always see what leaks out
+  blackhole->SetActive(false); // do not see what leaks out
   blackhole->OverlapCheck(overlapcheck);
   g4Reco->registerSubsystem(blackhole);
 
@@ -185,7 +185,7 @@ blackhole->set_double_param("radius",radius + 10); // add 10 cm
   blackhole->set_double_param("place_z",g4Reco->GetWorldSizeZ()/2. - 0.1  - no_overlapp);
   blackhole->BlackHole();
   blackhole->set_double_param("thickness",radius - no_overlapp); // it needs some thickness
-  blackhole->SetActive(); // always see what leaks out
+  blackhole->SetActive(false); // always see what leaks out
   blackhole->OverlapCheck(overlapcheck);
   g4Reco->registerSubsystem(blackhole);
 
@@ -197,7 +197,7 @@ blackhole->set_double_param("radius",radius + 10); // add 10 cm
   blackhole->set_double_param("place_z", - g4Reco->GetWorldSizeZ()/2. +0.1  + no_overlapp);
   blackhole->BlackHole();
   blackhole->set_double_param("thickness",radius - no_overlapp); // it needs some thickness
-  blackhole->SetActive(); // always see what leaks out
+  blackhole->SetActive(false); // always see what leaks out
   blackhole->OverlapCheck(overlapcheck);
   g4Reco->registerSubsystem(blackhole);
 
