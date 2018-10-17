@@ -1,5 +1,12 @@
 #include <vector>
 
+
+//================================
+// The TPC - material + a blackhole for projection testing
+double projection_target_radius = 30; //cm,  target projection radius
+//================================
+
+
 // ONLY if backward compatibility with hits files already generated with 8 inner TPC layers is needed, you can set this to "true"
 bool tpc_layers_40  = false;
 
@@ -177,28 +184,70 @@ double Tracking(PHG4Reco* g4Reco, double radius,
       radius = intt_radius_max * 0.1;
     }
 
-  // The TPC - always present!
-  //================================
 
-  gSystem->Load("libg4tpc.so");
+//  gSystem->Load("libg4tpc.so");
 
-  PHG4TPCSubsystem *tpc = new PHG4TPCSubsystem("TPC");
-  tpc->SetActive();
-  tpc->SuperDetector("TPC");
-  tpc->set_double_param("steplimits", 1);
-  // By default uses "sPHENIX_TPC_Gas", defined in PHG4Reco. That is 90:10 Ne:C4
+//  PHG4TPCSubsystem *tpc = new PHG4TPCSubsystem("TPC");
+//  tpc->SetActive();
+//  tpc->SuperDetector("TPC");
+//  tpc->set_double_param("steplimits", 1);
+//  // By default uses "sPHENIX_TPC_Gas", defined in PHG4Reco. That is 90:10 Ne:C4
+//
+// if (absorberactive)
+//    {
+//      tpc->SetAbsorberActive();
+//    }
+//  tpc->OverlapCheck(overlapcheck);
+//
+//  g4Reco->registerSubsystem( tpc );
 
- if (absorberactive)  
-    {
-      tpc->SetAbsorberActive();
-    }
-  tpc->OverlapCheck(overlapcheck);
+//  //================================
+//  // The TPC - material + a blackhole for projection testing
+//  set  projection_target_radius in the beginning of the macro
+//  //================================
 
-  g4Reco->registerSubsystem( tpc );  
+  double inner_cage_radius = 20.;
+  double cage_length = 211.0;  // From TPC group, gives eta = 1.1 at 78 cm
+  double n_rad_length_cage = 1.13e-02;
+  double cage_thickness = 28.6 * n_rad_length_cage;  // Kapton X_0 = 28.6 cm  // mocks up Kapton + carbon fiber structure
+  string tpcgas = "sPHENIX_TPC_Gas";  //  Ne(90%) CF4(10%) - defined in g4main/PHG4Reco.cc
+
+  // inner field cage
+  radius = inner_cage_radius;
+  PHG4CylinderSubsystem * cyl = new PHG4CylinderSubsystem("SVTXSUPPORT", n_maps_layer + n_intt_layer);
+  cyl->set_double_param("radius", radius);
+  cyl->set_int_param("lengthviarapidity", 0);
+  cyl->set_double_param("length", cage_length);
+  cyl->set_string_param("material", "G4_KAPTON");
+  cyl->set_double_param("thickness", cage_thickness);
+  cyl->SuperDetector("SVTXSUPPORT");
+  cyl->Verbosity(0);
+  g4Reco->registerSubsystem(cyl);
+  radius += cage_thickness;
+
+
+  cyl = new PHG4CylinderSubsystem("SVTXSUPPORT", n_maps_layer + n_intt_layer + 1);
+  cyl->set_double_param("radius", radius);
+  cyl->set_int_param("lengthviarapidity", 0);
+  cyl->set_double_param("length", cage_length);
+  cyl->set_string_param("material", tpcgas.c_str());
+  cyl->set_double_param("thickness", projection_target_radius - radius - no_overlapp);
+  cyl->SuperDetector("SVTXSUPPORT");
+  g4Reco->registerSubsystem(cyl);
+
+
+  PHG4CylinderSubsystem *blackhole = new PHG4CylinderSubsystem("SVTX", n_maps_layer + n_intt_layer);
+  blackhole->set_double_param("radius",projection_target_radius); //
+  blackhole->set_int_param("lengthviarapidity",0);
+  blackhole->set_double_param("length",210); // 210 cm
+  blackhole->BlackHole();
+  blackhole->set_double_param("thickness",0.01); // it needs some thickness
+  blackhole->SetActive(); // always see what leaks out
+  blackhole->OverlapCheck(overlapcheck);
+  blackhole->SuperDetector("SVTX");
+  g4Reco->registerSubsystem(blackhole);
 
   radius = 77.+1.17;
-  
-
   radius += no_overlapp;
   
   return radius; 
@@ -251,43 +300,51 @@ void Tracking_Cells(int verbosity = 0)
     se->registerSubsystem(reco);
   }
 
-  // Set up TPC distortion calculation
-  //========================
-  const bool do_tpc_distortion = true;
-  PHG4TPCSpaceChargeDistortion* tpc_distortion = NULL;
-  if (do_tpc_distortion)
-  {
-    string TPC_distortion_file =
-        string(getenv("CALIBRATIONROOT")) +
-        Form("/Tracking/TPC/SpaceChargeDistortion/TPCCAGE_20_78_211_2.root");
-    PHG4TPCSpaceChargeDistortion* tpc_distortion =
-        new PHG4TPCSpaceChargeDistortion(TPC_distortion_file);
-    //tpc_distortion -> setAccuracy(0); // option to over write default  factors
-    //tpc_distortion -> setPrecision(0.001); // option to over write default  factors      // default is 0.001
-  }
+//  // Set up TPC distortion calculation
+//  //========================
+//  const bool do_tpc_distortion = true;
+//  PHG4TPCSpaceChargeDistortion* tpc_distortion = NULL;
+//  if (do_tpc_distortion)
+//  {
+//    string TPC_distortion_file =
+//        string(getenv("CALIBRATIONROOT")) +
+//        Form("/Tracking/TPC/SpaceChargeDistortion/TPCCAGE_20_78_211_2.root");
+//    PHG4TPCSpaceChargeDistortion* tpc_distortion =
+//        new PHG4TPCSpaceChargeDistortion(TPC_distortion_file);
+//    //tpc_distortion -> setAccuracy(0); // option to over write default  factors
+//    //tpc_distortion -> setPrecision(0.001); // option to over write default  factors      // default is 0.001
+//  }
+//
+//  //=========================
+//  // setup TPC readout for filling cells
+//  // g4tpc/PHG4TPCElectronDrift uses
+//  // g4tpc/PHG4TPCPadPlaneReadout
+//  //=========================
+//
+//  PHG4TPCElectronDrift *edrift = new PHG4TPCElectronDrift();
+//  edrift->Detector("TPC");
+//  // fudge factors to get drphi 150 microns (in mid and outer TPC) and dz 500 microns cluster resolution
+//  // They represent effects not due to ideal gas properties and ideal readout plane behavior
+//  // defaults are 0.12 and 0.15, they can be changed here to get a different resolution
+//  edrift->set_double_param("added_smear_trans",0.12);
+//  edrift->set_double_param("added_smear_long",0.15);
+//  PHG4TPCPadPlane *padplane = new PHG4TPCPadPlaneReadout();
+//  edrift->registerPadPlane(padplane);
+//  se->registerSubsystem(edrift);
+//
+//  // The pad plane readout default is set in PHG4TPCPadPlaneReadout
+//  // We may want to change the number of inner layers, and can do that here
+//  padplane->set_int_param("tpc_minlayer_inner",n_maps_layer+n_intt_layer);   // sPHENIX layer number of first TPC readout layer
+//  padplane->set_int_param("ntpc_layers_inner",n_tpc_layer_inner);
+//   padplane->set_int_param("ntpc_phibins_inner",tpc_layer_rphi_count_inner);
 
-  //=========================
-  // setup TPC readout for filling cells
-  // g4tpc/PHG4TPCElectronDrift uses
-  // g4tpc/PHG4TPCPadPlaneReadout
-  //=========================
-
-  PHG4TPCElectronDrift *edrift = new PHG4TPCElectronDrift();
-  edrift->Detector("TPC");
-  // fudge factors to get drphi 150 microns (in mid and outer TPC) and dz 500 microns cluster resolution
-  // They represent effects not due to ideal gas properties and ideal readout plane behavior 
-  // defaults are 0.12 and 0.15, they can be changed here to get a different resolution
-  edrift->set_double_param("added_smear_trans",0.12);
-  edrift->set_double_param("added_smear_long",0.15);
-  PHG4TPCPadPlane *padplane = new PHG4TPCPadPlaneReadout();
-  edrift->registerPadPlane(padplane);
-  se->registerSubsystem(edrift);
-
-  // The pad plane readout default is set in PHG4TPCPadPlaneReadout
-  // We may want to change the number of inner layers, and can do that here
-  padplane->set_int_param("tpc_minlayer_inner",n_maps_layer+n_intt_layer);   // sPHENIX layer number of first TPC readout layer
-  padplane->set_int_param("ntpc_layers_inner",n_tpc_layer_inner); 
-   padplane->set_int_param("ntpc_phibins_inner",tpc_layer_rphi_count_inner); 
+  PHG4CylinderCellTPCReco* svtx_cells = new PHG4CylinderCellTPCReco(n_maps_layer + n_intt_layer);
+  svtx_cells->Detector("SVTX");
+  svtx_cells->Verbosity(0);
+  svtx_cells->cellsize( n_maps_layer + n_intt_layer, 1, 5);
+  double tpc_timing_window = 105.5 / 8;  // half length in cm / Vd in cm/ns => ns
+  svtx_cells->set_timing_window( n_maps_layer + n_intt_layer, -tpc_timing_window, +tpc_timing_window);
+  se->registerSubsystem(svtx_cells);
 
   return;
 }
@@ -416,16 +473,16 @@ void Tracking_Reco(int verbosity = 0)
 
   // For the TPC
   
-  PHG4TPCClusterizer* tpcclusterizer = new PHG4TPCClusterizer();
-  tpcclusterizer->Verbosity(0);
-  tpcclusterizer->setRangeLayers(n_maps_layer + n_intt_layer, Max_si_layer);
-  tpcclusterizer->setEnergyCut(15 /*adc*/);
-  tpcclusterizer->setFitWindowSigmas(0.0150, 0.10);  // should be changed when TPC cluster resolution changes
-  tpcclusterizer->setFitWindowMax(5 /*rphibins*/, 5 /*zbins*/);
-  se->registerSubsystem(tpcclusterizer);
+//  PHG4TPCClusterizer* tpcclusterizer = new PHG4TPCClusterizer();
+//  tpcclusterizer->Verbosity(0);
+//  tpcclusterizer->setRangeLayers(n_maps_layer + n_intt_layer, Max_si_layer);
+//  tpcclusterizer->setEnergyCut(15 /*adc*/);
+//  tpcclusterizer->setFitWindowSigmas(0.0150, 0.10);  // should be changed when TPC cluster resolution changes
+//  tpcclusterizer->setFitWindowMax(5 /*rphibins*/, 5 /*zbins*/);
+//  se->registerSubsystem(tpcclusterizer);
 
   // This should be true for everything except testing!
-  const bool use_kalman_pat_rec = true;
+  const bool use_kalman_pat_rec = false;
   if (use_kalman_pat_rec)
   {
     //---------------------
@@ -528,9 +585,9 @@ void Tracking_Eval(std::string outputfile, int verbosity = 0)
 
   SvtxEvaluator* eval;
   eval = new SvtxEvaluator("SVTXEVALUATOR", outputfile.c_str(), "SvtxTrackMap", n_maps_layer, n_intt_layer, n_gas_layer);
-  eval->do_cluster_eval(true);
-  eval->do_g4hit_eval(true);
-  eval->do_hit_eval(true);  // enable to see the hits that includes the chamber physics...
+  eval->do_cluster_eval(false);
+  eval->do_g4hit_eval(false);
+  eval->do_hit_eval(false);  // enable to see the hits that includes the chamber physics...
   eval->do_gpoint_eval(false);
   eval->scan_for_embedded(false);  // take all tracks if false - take only embedded tracks if true
   eval->Verbosity(0);
