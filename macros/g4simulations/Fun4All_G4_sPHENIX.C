@@ -469,6 +469,8 @@ int Fun4All_G4_sPHENIX(
     se->registerInputManager(pileup);
 
     const string pileupfile("/sphenix/sim/sim01/sHijing/sHijing_0-12fm.dat");
+		//background files for p+p pileup sim
+		//const string pileupfile("/gpfs/mnt/gpfs04/sphenix/user/shlim/04.InnerTrackerTaskForce/01.PythiaGen/list_pythia8_mb.dat");
     pileup->AddFile(pileupfile);  // HepMC events used in pile up collisions. You can add multiple files, and the file list will be reused.
     //pileup->set_vertex_distribution_width(100e-4,100e-4,30,5);//override collision smear in space time
     //pileup->set_vertex_distribution_mean(0,0,0,0);//override collision central position shift in space time
